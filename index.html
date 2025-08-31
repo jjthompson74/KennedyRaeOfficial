@@ -3,146 +3,96 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Horizontal Scrollytelling Starter</title>
-  <meta name="description" content="Starter layout: full-viewport panels, vertical scroll drives horizontal movement, sticky text nav, responsive.">
+  <title>Horizontal Scrollytelling — Fixed Header + Fixed Stage</title>
+  <meta name="description" content="Starter layout: fixed header, fixed horizontal stage; vertical scroll drives horizontal movement; mobile/reduced-motion fallbacks.">
   <style>
-    /*
-      Horizontal scrollytelling starter
-      - Full-viewport panels
-      - Vertical scroll drives horizontal motion (no wheel hijack)
-      - Sticky text menu
-      - Mobile fallback (vertical stack)
-      - Respects prefers-reduced-motion
-
-      HOW TO USE
-      1) Replace placeholder background colors/images per panel (see .panel[data-bg])
-      2) Edit the nav labels/IDs to match your content
-      3) Drop real content inside each .panel .content
-      4) Deploy as a single static HTML file (GitHub Pages/Netlify/Cloudflare Pages)
-    */
-
-    :root {
-      --nav-h: 56px;                 /* sticky header height */
-      --gutter: 5vw;                 /* content side padding */
-      --panel-count: 5;              /* JS updates this at runtime */
+    :root{
+      --nav-h: 56px;                 /* header height */
+      --gutter: 5vw;                 /* side padding inside panels */
+      --panel-count: 5;              /* updated by JS */
+      --progress-h: 3px;             /* set to 0 to hide progress bar */
       color-scheme: light dark;
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-
-    /* Visually-hidden utility for skip links, etc. */
-    .sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      background: #111;
-      color: #fff;
-      overflow-x: hidden; /* never allow horizontal page scroll */
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; margin:0; }
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      line-height:1.6; background:#111; color:#fff;
+      overflow-x:hidden; /* never allow page-level horizontal scroll */
+      padding-top: var(--nav-h); /* so content never hides under the fixed header */
     }
 
-    a { color: inherit; text-decoration: none; }
-    :where(a, button, [tabindex]):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    /* Visually hidden utility */
+    .sr-only{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
-    /* Sticky minimal text menu */
-    .site-header {
-      position: sticky; top: 0; z-index: 1000;
-      height: var(--nav-h);
-      display: grid; align-items: center;
-      background: rgba(0,0,0,.65); /* fallback for browsers without color-mix */
-      background: color-mix(in srgb, #000 80%, transparent);
-      backdrop-filter: blur(6px);
+    a{ color:inherit; text-decoration:none; }
+    :where(a,button,[tabindex]):focus-visible{ outline:2px solid currentColor; outline-offset:3px; }
+
+    /* Fixed header stays pinned at the very top */
+    .site-header{
+      position:fixed; inset:0 0 auto 0; height:var(--nav-h); z-index:1000;
+      display:grid; align-items:center; grid-template-rows: 1fr var(--progress-h);
+      background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
       border-bottom: 1px solid #222;
     }
-    .nav {
-      display: flex; gap: clamp(12px, 3vw, 28px);
-      padding: 0 2vw; white-space: nowrap; overflow: auto hidden;
-      scrollbar-width: none; /* Firefox */
+    .nav{ display:flex; gap: clamp(12px,3vw,28px); padding:0 2vw; white-space:nowrap; overflow:auto hidden; scrollbar-width:none; }
+    .nav::-webkit-scrollbar{ display:none; }
+    .nav a{ opacity:.8; }
+    .nav a[aria-current="page"], .nav a:hover{ opacity:1; }
+
+    /* Optional progress bar */
+    .progress{ height:var(--progress-h); background:rgba(255,255,255,.12); overflow:hidden; }
+    .progress__bar{ height:100%; width:0%; background: currentColor; opacity:.9; transform-origin:left center; }
+
+    /* === FIXED STAGE MODEL ===
+       The stage is a fixed viewport under the header; it never moves vertically.
+       Inside, the track is a horizontal strip of panels that we translate on X.
+    */
+    .stage{
+      position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
+      /* 100dvh handles mobile browser UI; desktop treats as 100vh */
+      background:#000; z-index: 10; overflow:hidden; contain:layout paint;
     }
-    .nav::-webkit-scrollbar { display: none; }
-    .nav a { opacity: .8; }
-    .nav a[aria-current="page"], .nav a:hover { opacity: 1; }
-
-    /* Optional progress bar (set --progress-h:0 to hide) */
-    .site-header { grid-template-rows: 1fr var(--progress-h, 3px); }
-    .progress { height: var(--progress-h, 3px); background: rgba(255,255,255,.12); overflow: hidden; }
-    .progress__bar { height: 100%; width: 0%; background: currentColor; opacity: .8; transform-origin: left center; }
-
-    /* Scroll scene root: tall spacer so sticky container can animate */
-    .scene-root {
-      position: relative;
-      height: calc(var(--panel-count) * 100vh);
-      /* JS changes height for reduced-motion/mobile */
-    }
-
-    /* Sticky viewport for the horizontal track */
-    .scene-pin {
-      position: sticky; top: 0; height: calc(100vh - var(--nav-h)); /* fallback */
-      height: calc(100dvh - var(--nav-h)); /* better on mobile browsers */
-      /* subtract header so panels don’t hide under nav */
-      margin-top: var(--nav-h);
-      overflow: hidden; /* mask the track while translating */
-      contain: layout paint;
-      background: #000;
-    }
-
-    /* Horizontal track holds all panels side-by-side */
-    .track {
-      display: flex; height: 100%;
-      width: max(100vw, calc(var(--panel-count) * 100vw));
+    .track{
+      display:flex; height:100%; width: calc(var(--panel-count) * 100vw);
       transform: translate3d(0,0,0);
     }
 
-    .panel {
-      position: relative; flex: 0 0 100vw; height: 100%; overflow: hidden;
-      display: grid; place-items: center; isolation: isolate;
-      background: #222; /* default if no bg provided */
+    .panel{
+      position:relative; flex:0 0 100vw; height:100%; overflow:hidden;
+      display:grid; place-items:center; isolation:isolate; background:#222;
+    }
+    .panel[data-bg]::before{
+      content:""; position:absolute; inset:0; z-index:-1;
+      background:center/cover no-repeat var(--bg);
+    }
+    .content{ width:min(1100px,90vw); padding:6vh var(--gutter); }
+    h1,h2{ line-height:1.2; margin:0 0 .5em; }
+    h1{ font-size: clamp(2rem, 4vw + 1rem, 4rem); }
+    h2{ font-size: clamp(1.5rem, 3vw + .5rem, 3rem); }
+    p{ max-width:70ch; margin:0 0 1rem; }
+
+    /* The spacer is invisible content that creates the vertical scroll range. */
+    #spacer{ height:100vh; }
+
+    /* Mobile / reduced-motion fallback: no fixed stage, panels stack vertically. */
+    @media (max-width: 768px), (prefers-reduced-motion: reduce){
+      .stage{ position:static; top:auto; height:auto; }
+      .track{ flex-direction:column; width:100%; transform:none !important; }
+      #spacer{ display:none; }
+      .panel{ height:min(100vh, 900px); }
     }
 
-    /* Background image helper via data attribute (replace URLs inline) */
-    .panel[data-bg]::before {
-      content: "";
-      position: absolute; inset: 0; z-index: -1;
-      background: center / cover no-repeat var(--bg);
-      /* Fallback color behind image helps LCP */
-    }
-
-    .content {
-      width: min(1100px, 90vw);
-      padding: 6vh var(--gutter);
-    }
-
-    h1, h2 { line-height: 1.2; margin: 0 0 .5em; }
-    h1 { font-size: clamp(2rem, 4vw + 1rem, 4rem); }
-    h2 { font-size: clamp(1.5rem, 3vw + .5rem, 3rem); }
-    p { max-width: 70ch; margin: 0 0 1rem; }
-
-    /* Mobile / narrow fallback: stack panels vertically, disable pin */
-    @media (max-width: 768px) {
-      .scene-root { height: auto; }
-      .scene-pin { position: static; height: auto; margin: 0; }
-      .track { flex-direction: column; width: 100%; transform: none !important; }
-      .panel { height: min(100vh, 900px); }
-    }
-
-    /* Reduced motion: disable transforms and just show first panel width */
-    @media (prefers-reduced-motion: reduce) {
-      .scene-root { height: auto; }
-      .track { transform: none !important; }
-    }
-
-    /* Helper badges for demonstration – remove later */
-    .badge { position: absolute; top: 12px; left: 12px; opacity: .7; font-size: .875rem; }
+    /* Demo badges (remove later) */
+    .badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
   </style>
 </head>
 <body>
-  <!-- Accessible skip link (optional) -->
   <a href="#main" class="sr-only">Skip to content</a>
 
   <header class="site-header" role="banner">
     <nav class="nav" aria-label="Primary">
-      <!-- Update href targets to your panel IDs -->
       <a href="#home" data-panel="0" aria-current="page">Home</a>
       <a href="#section-1" data-panel="1">Section 1</a>
       <a href="#section-2" data-panel="2">Section 2</a>
@@ -152,103 +102,88 @@
     <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
   </header>
 
-  <main id="main" role="main">
-    <!--
-      Scene structure:
-      - scene-root: tall container controlling total scroll distance
-      - scene-pin: sticky viewport
-      - track: horizontal flex strip translated by JS
-    -->
-    <section class="scene-root" id="scene">
-      <div class="scene-pin">
-        <div class="track" id="track">
-
-          <!-- Panel 0: Home (full-bleed photo background). Replace URL below. -->
-          <section class="panel" id="home" data-bg style="--bg: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&q=80&auto=format&fit=crop');">
-            <span class="badge">Panel 0</span>
-            <div class="content">
-              <h1>Welcome</h1>
-              <p>Replace with your hero copy. This panel uses a full-bleed background image and centers content.</p>
-            </div>
-          </section>
-
-          <!-- Panel 1: background color example -->
-          <section class="panel" id="section-1" style="background:#0f172a;">
-            <span class="badge">Panel 1</span>
-            <div class="content">
-              <h2>Section 1</h2>
-              <p>Drop your HTML here. Use any layout inside .content.</p>
-            </div>
-          </section>
-
-          <!-- Panel 2: alternative background image -->
-          <section class="panel" id="section-2" data-bg style="--bg: url('https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?w=2000&q=80&auto=format&fit=crop');">
-            <span class="badge">Panel 2</span>
-            <div class="content">
-              <h2>Section 2</h2>
-              <p>Swap to a different photo or a video background if you prefer (optimize media!).</p>
-            </div>
-          </section>
-
-          <!-- Panel 3: solid background -->
-          <section class="panel" id="section-3" style="background:#111827;">
-            <span class="badge">Panel 3</span>
-            <div class="content">
-              <h2>Section 3</h2>
-              <p>Another content area. Mix text, images, cards, etc.</p>
-            </div>
-          </section>
-
-          <!-- Panel 4: image again -->
-          <section class="panel" id="section-4" data-bg style="--bg: url('https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=2000&q=80&auto=format&fit=crop');">
-            <span class="badge">Panel 4</span>
-            <div class="content">
-              <h2>Section 4</h2>
-              <p>Final section. Add a CTA or footer-like content.</p>
-            </div>
-          </section>
-
+  <!-- Fixed stage (never moves vertically) -->
+  <div class="stage" id="stage" aria-hidden="true">
+    <div class="track" id="track">
+      <!-- Panel 0 -->
+      <section class="panel" id="home" data-bg style="--bg: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&q=80&auto=format&fit=crop');">
+        <span class="badge">Panel 0</span>
+        <div class="content">
+          <h1>Welcome</h1>
+          <p>Hero text here. Replace image URL via the inline <code>--bg</code> style.</p>
         </div>
-      </div>
-    </section>
+      </section>
+      <!-- Panel 1 -->
+      <section class="panel" id="section-1" style="background:#0f172a;">
+        <span class="badge">Panel 1</span>
+        <div class="content">
+          <h2>Section 1</h2>
+          <p>Drop your HTML here.</p>
+        </div>
+      </section>
+      <!-- Panel 2 -->
+      <section class="panel" id="section-2" data-bg style="--bg: url('https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?w=2000&q=80&auto=format&fit=crop');">
+        <span class="badge">Panel 2</span>
+        <div class="content">
+          <h2>Section 2</h2>
+          <p>Swap to a different photo or color.</p>
+        </div>
+      </section>
+      <!-- Panel 3 -->
+      <section class="panel" id="section-3" style="background:#111827;">
+        <span class="badge">Panel 3</span>
+        <div class="content">
+          <h2>Section 3</h2>
+          <p>Another content area.</p>
+        </div>
+      </section>
+      <!-- Panel 4 -->
+      <section class="panel" id="section-4" data-bg style="--bg: url('https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=2000&q=80&auto=format&fit=crop');">
+        <span class="badge">Panel 4</span>
+        <div class="content">
+          <h2>Section 4</h2>
+          <p>Final section / CTA.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Spacer drives the vertical scroll distance; stage sits above it fixed. -->
+  <main id="main" role="main">
+    <div id="spacer" aria-hidden="true"></div>
   </main>
 
   <noscript>
-    <p style="padding:1rem">This experience uses a small script to transform panels horizontally while you scroll. With JavaScript disabled, panels appear stacked vertically.</p>
+    <p style="padding:1rem">This layout uses a small script to translate panels horizontally while you scroll. With JavaScript disabled (or on small screens), panels appear stacked vertically and the header stays fixed.</p>
   </noscript>
 
   <script>
     (function(){
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const isNarrow = () => window.matchMedia('(max-width: 768px)').matches;
+      const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const isNarrow = () => matchMedia('(max-width: 768px)').matches;
 
-      const root = document.querySelector(':root');
-      const scene = document.getElementById('scene');
-      const pin = scene.querySelector('.scene-pin');
+      const root = document.documentElement;
+      const stage = document.getElementById('stage');
       const track = document.getElementById('track');
       const panels = Array.from(track.querySelectorAll('.panel'));
+      const spacer = document.getElementById('spacer');
       const nav = document.querySelector('.nav');
       const links = Array.from(nav.querySelectorAll('a[data-panel]'));
       const idByIndex = panels.map(p => '#' + p.id);
-      let currentIndex = 0;
       const progressEl = document.getElementById('progressBar');
 
-      // Expose panel count to CSS for scene height calc
       root.style.setProperty('--panel-count', panels.length);
 
-      let startY = 0;     // scene start (page Y)
-      let endY = 0;       // scene end (page Y)
-      let totalScroll = 0; // vertical distance over which we animate
-      let maxX = 0;       // max horizontal translate in px
+      let maxX = 0;           // total horizontal distance in px
+      let totalScroll = 0;    // vertical scroll range mapping to maxX
+      let currentIndex = 0;
 
       function measure(){
-        const rect = scene.getBoundingClientRect();
-        const pageY = window.scrollY || window.pageYOffset;
-        startY = pageY + rect.top; // top of scene relative to document
-        const sceneHeight = panels.length * window.innerHeight; // matches CSS
-        endY = startY + sceneHeight - window.innerHeight; // when sticky would unpin
-        totalScroll = Math.max(1, endY - startY);
-        maxX = Math.max(0, track.scrollWidth - window.innerWidth);
+        // Compute max horizontal travel and matching vertical range
+        const vw = window.innerWidth;
+        maxX = Math.max(0, (panels.length * vw) - vw);
+        totalScroll = maxX; // 1:1 mapping: 1px vertical scroll = 1px horizontal move
+        spacer.style.height = (totalScroll + window.innerHeight) + 'px';
       }
 
       function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
@@ -257,55 +192,48 @@
       function onScroll(){
         if (ticking) return; ticking = true;
         requestAnimationFrame(() => {
-          const pageY = window.scrollY || window.pageYOffset;
-          const progress = clamp((pageY - startY) / totalScroll, 0, 1);
-          // Translate the horizontal track based on vertical progress
-          track.style.transform = `translate3d(${-progress * maxX}px, 0, 0)`;
-          // Update nav current state
-          const idx = Math.round(progress * (panels.length - 1));
+          // Map page scroll to horizontal translation
+          const y = window.scrollY || window.pageYOffset;
+          const progress = totalScroll ? clamp(y / totalScroll, 0, 1) : 0;
+          const x = -progress * maxX;
+          track.style.transform = `translate3d(${x}px,0,0)`;
+
           if (progressEl) progressEl.style.width = (progress * 100) + '%';
-          if (idx !== currentIndex) {
-            currentIndex = idx;
-            setHash(idByIndex[idx], false); // reflect active panel in URL without spamming history
-            updateNav(idx);
-          }
+          const idx = Math.round(progress * (panels.length - 1));
+          if (idx !== currentIndex){ currentIndex = idx; updateNav(idx); setHash(idByIndex[idx], false); }
           ticking = false;
         });
       }
 
       function updateNav(activeIndex){
-        const links = Array.from(nav.querySelectorAll('a[data-panel]'));
         links.forEach(a => a.removeAttribute('aria-current'));
         const active = links.find(a => Number(a.dataset.panel) === activeIndex);
-        if (active) active.setAttribute('aria-current', 'page');
+        if (active) active.setAttribute('aria-current','page');
       }
 
       function setHash(id, push){
         if (!id || id === window.location.hash) return;
-        try {
-          if (push) history.pushState(null, '', id);
-          else history.replaceState(null, '', id);
-        } catch (e) { window.location.hash = id; }
+        try{ push ? history.pushState(null,'',id) : history.replaceState(null,'',id); }
+        catch(e){ window.location.hash = id; }
+      }
+
+      function scrollToPanel(index){
+        const targetProgress = (panels.length > 1) ? index / (panels.length - 1) : 0;
+        const y = targetProgress * totalScroll;
+        window.scrollTo({ top: y, behavior: 'smooth' });
       }
 
       function gotoHash(){
-        const hash = decodeURIComponent(window.location.hash || '');
+        const hash = decodeURIComponent(window.location.hash||'');
         if (!hash || hash === '#') return;
         const id = hash.replace('#','');
         const index = panels.findIndex(p => p.id === id);
         if (index < 0) return;
         if (prefersReduced || isNarrow()) {
-          document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+          document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
         } else {
           scrollToPanel(index);
         }
-      }
-
-      // Click-to-section: compute vertical scroll for a target panel index
-      function scrollToPanel(index){
-        const targetProgress = index / (panels.length - 1);
-        const y = startY + targetProgress * totalScroll;
-        window.scrollTo({ top: y, behavior: 'smooth' });
       }
 
       function bindNav(){
@@ -313,52 +241,44 @@
           const a = e.target.closest('a[data-panel]');
           if (!a) return;
           const index = Number(a.dataset.panel);
-          if (Number.isFinite(index)) {
-            e.preventDefault();
-            const id = a.getAttribute('href');
-            setHash(id, true); // create a history entry so back/forward works after nav clicks
-            if (prefersReduced || isNarrow()) {
-              const el = document.querySelector(id);
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            } else {
-              scrollToPanel(index);
-            }
+          if (!Number.isFinite(index)) return;
+          e.preventDefault();
+          const id = a.getAttribute('href');
+          setHash(id, true); // create history entry so back/forward works
+          if (prefersReduced || isNarrow()){
+            document.querySelector(id)?.scrollIntoView({ behavior:'smooth' });
+          } else {
+            scrollToPanel(index);
           }
+        });
+
+        // Optional keyboard nav: arrows/page up/down
+        addEventListener('keydown', (e) => {
+          if (['ArrowRight','PageDown'].includes(e.key)) { e.preventDefault(); scrollToPanel(clamp(currentIndex+1,0,panels.length-1)); }
+          if (['ArrowLeft','PageUp'].includes(e.key))   { e.preventDefault(); scrollToPanel(clamp(currentIndex-1,0,panels.length-1)); }
+          if (e.key === 'Home') { e.preventDefault(); scrollToPanel(0); }
+          if (e.key === 'End')  { e.preventDefault(); scrollToPanel(panels.length-1); }
         });
       }
 
-      function enableScene(){
-        // Ensure CSS matches our JS expectations
-        scene.style.height = `calc(${panels.length} * 100vh)`;
-        pin.style.position = 'sticky';
-        track.style.transform = 'translate3d(0,0,0)';
-        measure();
-        onScroll();
-      }
-
-      function disableScene(){
-        // Revert to vertical stacking
-        scene.style.height = 'auto';
-        pin.style.position = 'static';
-        track.style.transform = 'none';
-      }
-
       function refresh(){
-        if (prefersReduced || isNarrow()) {
-          disableScene();
+        if (prefersReduced || isNarrow()){
+          // Fallback mode: stacked panels; no special sizing needed
+          track.style.transform = 'none';
+          spacer.style.display = 'none';
         } else {
-          enableScene();
+          spacer.style.display = '';
+          measure();
+          onScroll();
         }
       }
 
       bindNav();
-      refresh();
-      addEventListener('resize', () => { measure(); onScroll(); });
-      addEventListener('orientationchange', () => { measure(); onScroll(); });
-      addEventListener('load', () => { measure(); onScroll(); gotoHash(); });
+      addEventListener('resize', refresh);
+      addEventListener('orientationchange', refresh);
+      addEventListener('load', () => { refresh(); gotoHash(); });
       addEventListener('hashchange', gotoHash);
-      addEventListener('scroll', onScroll, { passive: true });
-
+      addEventListener('scroll', onScroll, { passive:true });
     })();
   </script>
 </body>
