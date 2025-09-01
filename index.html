@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Horizontal Scrollytelling — Fixed Header + Fixed Stage</title>
-  <meta name="description" content="Starter layout: fixed header, fixed horizontal stage; vertical scroll drives horizontal movement; mobile/reduced-motion fallbacks.">
+  <meta name="description" content="Starter layout: fixed header, fixed horizontal stage; vertical scroll drives horizontal movement; mobile scroll-snap; reduced-motion fallback.">
   <style>
     :root{
       --nav-h: 56px;                 /* header height */
@@ -45,13 +45,9 @@
     .progress{ height:var(--progress-h); background:rgba(255,255,255,.12); overflow:hidden; }
     .progress__bar{ height:100%; width:0%; background: currentColor; opacity:.9; transform-origin:left center; }
 
-    /* === FIXED STAGE MODEL ===
-       The stage is a fixed viewport under the header; it never moves vertically.
-       Inside, the track is a horizontal strip of panels that we translate on X.
-    */
+    /* === FIXED STAGE MODEL (desktop) === */
     .stage{
       position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
-      /* 100dvh handles mobile browser UI; desktop treats as 100vh */
       background:#000; z-index: 10; overflow:hidden; contain:layout paint;
     }
     .track{
@@ -76,32 +72,25 @@
     /* The spacer is invisible content that creates the vertical scroll range. */
     #spacer{ height:100vh; }
 
-   /* Mobile: stack panels vertically AND snap one full panel per scroll */
-@media (max-width: 768px) {
-  .stage { position: static; top: auto; height: auto; }
-  .track { flex-direction: column; width: 100%; transform: none !important; }
-  #spacer { display: none; }
+    /* === MOBILE: vertical stack + full-height scroll-snap === */
+    @media (max-width: 768px){
+      .stage{ position:static; top:auto; height:auto; }
+      .track{ flex-direction:column; width:100%; transform:none !important; }
+      #spacer{ display:none; }
 
-  /* Full-height panels below the fixed header */
-  html, body { 
-    scroll-snap-type: y mandatory; 
-    scroll-padding-top: var(--nav-h); /* stop panels below the fixed menu */
-  }
-  .panel { 
-    height: calc(100dvh - var(--nav-h)); 
-    scroll-snap-align: start; 
-    scroll-snap-stop: always; 
-  }
-}
+      /* Enable page-level scroll snapping */
+      html, body{ scroll-snap-type: y mandatory; scroll-padding-top: var(--nav-h); }
+      .panel{ height: calc(100dvh - var(--nav-h)); scroll-snap-align: start; scroll-snap-stop: always; }
+    }
 
-/* Reduced-motion: stack panels without special snapping/animation */
-@media (prefers-reduced-motion: reduce) {
-  .stage { position: static; top: auto; height: auto; }
-  .track { flex-direction: column; width: 100%; transform: none !important; }
-  #spacer { display: none; }
-  .panel { height: min(100vh, 900px); } /* keep it comfortable */
-}
-
+    /* === REDUCED-MOTION: stack panels without snapping/animation === */
+    @media (prefers-reduced-motion: reduce){
+      .stage{ position:static; top:auto; height:auto; }
+      .track{ flex-direction:column; width:100%; transform:none !important; }
+      #spacer{ display:none; }
+      html, body{ scroll-snap-type: none; }
+      .panel{ height: min(100vh, 900px); }
+    }
 
     /* Demo badges (remove later) */
     .badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
@@ -121,54 +110,54 @@
     <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
   </header>
 
-  <!-- Fixed stage (never moves vertically) -->
-  <div class="stage" id="stage" aria-hidden="true">
-    <div class="track" id="track">
-      <!-- Panel 0 -->
-      <section class="panel" id="home" data-bg style="--bg: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&q=80&auto=format&fit=crop');">
-        <span class="badge">Panel 0</span>
-        <div class="content">
-          <h1>Welcome</h1>
-          <p>Hero text here. Replace image URL via the inline <code>--bg</code> style.</p>
-        </div>
-      </section>
-      <!-- Panel 1 -->
-      <section class="panel" id="section-1" style="background:#0f172a;">
-        <span class="badge">Panel 1</span>
-        <div class="content">
-          <h2>Section 1</h2>
-          <p>Drop your HTML here.</p>
-        </div>
-      </section>
-      <!-- Panel 2 -->
-      <section class="panel" id="section-2" data-bg style="--bg: url('https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?w=2000&q=80&auto=format&fit=crop');">
-        <span class="badge">Panel 2</span>
-        <div class="content">
-          <h2>Section 2</h2>
-          <p>Swap to a different photo or color.</p>
-        </div>
-      </section>
-      <!-- Panel 3 -->
-      <section class="panel" id="section-3" style="background:#111827;">
-        <span class="badge">Panel 3</span>
-        <div class="content">
-          <h2>Section 3</h2>
-          <p>Another content area.</p>
-        </div>
-      </section>
-      <!-- Panel 4 -->
-      <section class="panel" id="section-4" data-bg style="--bg: url('https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=2000&q=80&auto=format&fit=crop');">
-        <span class="badge">Panel 4</span>
-        <div class="content">
-          <h2>Section 4</h2>
-          <p>Final section / CTA.</p>
-        </div>
-      </section>
-    </div>
-  </div>
-
-  <!-- Spacer drives the vertical scroll distance; stage sits above it fixed. -->
   <main id="main" role="main">
+    <!-- Fixed stage (never moves vertically on desktop) -->
+    <div class="stage" id="stage">
+      <div class="track" id="track">
+        <!-- Panel 0 -->
+        <section class="panel" id="home" data-bg style="--bg: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&q=80&auto=format&fit=crop');">
+          <span class="badge">Panel 0</span>
+          <div class="content">
+            <h1>Welcome</h1>
+            <p>Hero text here. Replace image URL via the inline <code>--bg</code> style.</p>
+          </div>
+        </section>
+        <!-- Panel 1 -->
+        <section class="panel" id="section-1" style="background:#0f172a;">
+          <span class="badge">Panel 1</span>
+          <div class="content">
+            <h2>Section 1</h2>
+            <p>Drop your HTML here.</p>
+          </div>
+        </section>
+        <!-- Panel 2 -->
+        <section class="panel" id="section-2" data-bg style="--bg: url('https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?w=2000&q=80&auto=format&fit=crop');">
+          <span class="badge">Panel 2</span>
+          <div class="content">
+            <h2>Section 2</h2>
+            <p>Swap to a different photo or color.</p>
+          </div>
+        </section>
+        <!-- Panel 3 -->
+        <section class="panel" id="section-3" style="background:#111827;">
+          <span class="badge">Panel 3</span>
+          <div class="content">
+            <h2>Section 3</h2>
+            <p>Another content area.</p>
+          </div>
+        </section>
+        <!-- Panel 4 -->
+        <section class="panel" id="section-4" data-bg style="--bg: url('https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=2000&q=80&auto=format&fit=crop');">
+          <span class="badge">Panel 4</span>
+          <div class="content">
+            <h2>Section 4</h2>
+            <p>Final section / CTA.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Spacer drives the vertical scroll distance on desktop; hidden on mobile/reduced motion. -->
     <div id="spacer" aria-hidden="true"></div>
   </main>
 
@@ -198,10 +187,9 @@
       let currentIndex = 0;
 
       function measure(){
-        // Compute max horizontal travel and matching vertical range
         const vw = window.innerWidth;
         maxX = Math.max(0, (panels.length * vw) - vw);
-        totalScroll = maxX; // 1:1 mapping: 1px vertical scroll = 1px horizontal move
+        totalScroll = maxX; // 1:1 mapping
         spacer.style.height = (totalScroll + window.innerHeight) + 'px';
       }
 
@@ -211,7 +199,6 @@
       function onScroll(){
         if (ticking) return; ticking = true;
         requestAnimationFrame(() => {
-          // Map page scroll to horizontal translation
           const y = window.scrollY || window.pageYOffset;
           const progress = totalScroll ? clamp(y / totalScroll, 0, 1) : 0;
           const x = -progress * maxX;
@@ -263,7 +250,7 @@
           if (!Number.isFinite(index)) return;
           e.preventDefault();
           const id = a.getAttribute('href');
-          setHash(id, true); // create history entry so back/forward works
+          setHash(id, true);
           if (prefersReduced || isNarrow()){
             document.querySelector(id)?.scrollIntoView({ behavior:'smooth' });
           } else {
@@ -271,7 +258,6 @@
           }
         });
 
-        // Optional keyboard nav: arrows/page up/down
         addEventListener('keydown', (e) => {
           if (['ArrowRight','PageDown'].includes(e.key)) { e.preventDefault(); scrollToPanel(clamp(currentIndex+1,0,panels.length-1)); }
           if (['ArrowLeft','PageUp'].includes(e.key))   { e.preventDefault(); scrollToPanel(clamp(currentIndex-1,0,panels.length-1)); }
@@ -282,7 +268,7 @@
 
       function refresh(){
         if (prefersReduced || isNarrow()){
-          // Fallback mode: stacked panels; no special sizing needed
+          // Fallback/mobile mode: stacked panels, no programmatic translation
           track.style.transform = 'none';
           spacer.style.display = 'none';
         } else {
