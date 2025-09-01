@@ -76,13 +76,32 @@
     /* The spacer is invisible content that creates the vertical scroll range. */
     #spacer{ height:100vh; }
 
-    /* Mobile / reduced-motion fallback: no fixed stage, panels stack vertically. */
-    @media (max-width: 768px), (prefers-reduced-motion: reduce){
-      .stage{ position:static; top:auto; height:auto; }
-      .track{ flex-direction:column; width:100%; transform:none !important; }
-      #spacer{ display:none; }
-      .panel{ height:min(100vh, 900px); }
-    }
+   /* Mobile: stack panels vertically AND snap one full panel per scroll */
+@media (max-width: 768px) {
+  .stage { position: static; top: auto; height: auto; }
+  .track { flex-direction: column; width: 100%; transform: none !important; }
+  #spacer { display: none; }
+
+  /* Full-height panels below the fixed header */
+  html, body { 
+    scroll-snap-type: y mandatory; 
+    scroll-padding-top: var(--nav-h); /* stop panels below the fixed menu */
+  }
+  .panel { 
+    height: calc(100dvh - var(--nav-h)); 
+    scroll-snap-align: start; 
+    scroll-snap-stop: always; 
+  }
+}
+
+/* Reduced-motion: stack panels without special snapping/animation */
+@media (prefers-reduced-motion: reduce) {
+  .stage { position: static; top: auto; height: auto; }
+  .track { flex-direction: column; width: 100%; transform: none !important; }
+  #spacer { display: none; }
+  .panel { height: min(100vh, 900px); } /* keep it comfortable */
+}
+
 
     /* Demo badges (remove later) */
     .badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
