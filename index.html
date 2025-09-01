@@ -20,7 +20,7 @@
       font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
       line-height:1.6; background:#111; color:#fff;
       overflow-x:hidden; /* never allow page-level horizontal scroll */
-      padding-top: var(--nav-h); /* so content never hides under the fixed header */
+      padding-top: var(--nav-h); /* keep content below fixed header */
     }
 
     /* Visually hidden utility */
@@ -45,7 +45,7 @@
     .progress{ height:var(--progress-h); background:rgba(255,255,255,.12); overflow:hidden; }
     .progress__bar{ height:100%; width:0%; background: currentColor; opacity:.9; transform-origin:left center; }
 
-    /* === FIXED STAGE MODEL (desktop) === */
+    /* === DESKTOP: FIXED STAGE MODEL === */
     .stage{
       position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
       background:#000; z-index: 10; overflow:hidden; contain:layout paint;
@@ -72,24 +72,32 @@
     /* The spacer is invisible content that creates the vertical scroll range. */
     #spacer{ height:100vh; }
 
-    /* === MOBILE: vertical stack + full-height scroll-snap === */
+    /* === MOBILE: vertical stack + full-height SCROLL-SNAP on the TRACK (reliable on iOS/Android) === */
     @media (max-width: 768px){
       .stage{ position:static; top:auto; height:auto; }
-      .track{ flex-direction:column; width:100%; transform:none !important; }
+      .track{
+        flex-direction:column; width:100%;
+        height: calc(100dvh - var(--nav-h)); /* viewport minus fixed header */
+        overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+        scroll-snap-type: y mandatory; /* make the track the scroller & snap container */
+        transform: none !important;
+      }
       #spacer{ display:none; }
 
-      /* Enable page-level scroll snapping */
-      html, body{ scroll-snap-type: y mandatory; scroll-padding-top: var(--nav-h); }
-      .panel{ height: calc(100dvh - var(--nav-h)); scroll-snap-align: start; scroll-snap-stop: always; }
+      .panel{
+        flex: 0 0 auto; /* stack naturally */
+        height: calc(100dvh - var(--nav-h));
+        scroll-snap-align: start; scroll-snap-stop: always;
+      }
     }
 
     /* === REDUCED-MOTION: stack panels without snapping/animation === */
     @media (prefers-reduced-motion: reduce){
       .stage{ position:static; top:auto; height:auto; }
-      .track{ flex-direction:column; width:100%; transform:none !important; }
+      .track{ flex-direction:column; width:100%; height:auto; overflow:visible; transform:none !important; }
       #spacer{ display:none; }
-      html, body{ scroll-snap-type: none; }
       .panel{ height: min(100vh, 900px); }
+      html, body{ scroll-snap-type: none; }
     }
 
     /* Demo badges (remove later) */
@@ -183,32 +191,45 @@
       root.style.setProperty('--panel-count', panels.length);
 
       let maxX = 0;           // total horizontal distance in px
-      let totalScroll = 0;    // vertical scroll range mapping to maxX
+      let totalScroll = 0;    // vertical scroll range mapping to maxX (desktop)
       let currentIndex = 0;
 
       function measure(){
         const vw = window.innerWidth;
         maxX = Math.max(0, (panels.length * vw) - vw);
-        totalScroll = maxX; // 1:1 mapping
+        totalScroll = maxX; // 1:1 mapping for desktop
         spacer.style.height = (totalScroll + window.innerHeight) + 'px';
       }
 
       function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
 
+      // --- DESKTOP scroll mapping (window scroll → horizontal translate) ---
       let ticking = false;
       function onScroll(){
+        if (isNarrow() || prefersReduced) return; // mobile/reduced-motion uses native stacking
         if (ticking) return; ticking = true;
         requestAnimationFrame(() => {
           const y = window.scrollY || window.pageYOffset;
           const progress = totalScroll ? clamp(y / totalScroll, 0, 1) : 0;
           const x = -progress * maxX;
           track.style.transform = `translate3d(${x}px,0,0)`;
-
           if (progressEl) progressEl.style.width = (progress * 100) + '%';
           const idx = Math.round(progress * (panels.length - 1));
           if (idx !== currentIndex){ currentIndex = idx; updateNav(idx); setHash(idByIndex[idx], false); }
           ticking = false;
         });
+      }
+
+      // --- MOBILE snap progress (track scroll → progress/nav) ---
+      function onTrackScroll(){
+        if (!isNarrow() || prefersReduced) return;
+        const max = track.scrollHeight - track.clientHeight;
+        const st = track.scrollTop;
+        const progress = max ? clamp(st / max, 0, 1) : 0;
+        if (progressEl) progressEl.style.width = (progress * 100) + '%';
+        const panelH = track.clientHeight || 1;
+        const idx = clamp(Math.round(st / panelH), 0, panels.length - 1);
+        if (idx !== currentIndex){ currentIndex = idx; updateNav(idx); setHash(idByIndex[idx], false); }
       }
 
       function updateNav(activeIndex){
@@ -224,6 +245,13 @@
       }
 
       function scrollToPanel(index){
+        if (isNarrow() && !prefersReduced){
+          // mobile: scroll the track
+          const y = (track.clientHeight * index);
+          track.scrollTo({ top: y, behavior: 'smooth' });
+          return;
+        }
+        // desktop: map to window scroll
         const targetProgress = (panels.length > 1) ? index / (panels.length - 1) : 0;
         const y = targetProgress * totalScroll;
         window.scrollTo({ top: y, behavior: 'smooth' });
@@ -235,11 +263,7 @@
         const id = hash.replace('#','');
         const index = panels.findIndex(p => p.id === id);
         if (index < 0) return;
-        if (prefersReduced || isNarrow()) {
-          document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
-        } else {
-          scrollToPanel(index);
-        }
+        scrollToPanel(index);
       }
 
       function bindNav(){
@@ -250,14 +274,11 @@
           if (!Number.isFinite(index)) return;
           e.preventDefault();
           const id = a.getAttribute('href');
-          setHash(id, true);
-          if (prefersReduced || isNarrow()){
-            document.querySelector(id)?.scrollIntoView({ behavior:'smooth' });
-          } else {
-            scrollToPanel(index);
-          }
+          setHash(id, true); // create history entry
+          scrollToPanel(index);
         });
 
+        // keyboard helpers
         addEventListener('keydown', (e) => {
           if (['ArrowRight','PageDown'].includes(e.key)) { e.preventDefault(); scrollToPanel(clamp(currentIndex+1,0,panels.length-1)); }
           if (['ArrowLeft','PageUp'].includes(e.key))   { e.preventDefault(); scrollToPanel(clamp(currentIndex-1,0,panels.length-1)); }
@@ -267,11 +288,19 @@
       }
 
       function refresh(){
-        if (prefersReduced || isNarrow()){
-          // Fallback/mobile mode: stacked panels, no programmatic translation
+        if (prefersReduced){
           track.style.transform = 'none';
           spacer.style.display = 'none';
+          if (progressEl) progressEl.style.width = '0%';
+          return;
+        }
+        if (isNarrow()){
+          // mobile: stacked + snap; no desktop measurements needed
+          track.style.transform = 'none';
+          spacer.style.display = 'none';
+          if (progressEl) progressEl.style.width = '0%';
         } else {
+          // desktop
           spacer.style.display = '';
           measure();
           onScroll();
@@ -279,11 +308,13 @@
       }
 
       bindNav();
+      // listeners
       addEventListener('resize', refresh);
       addEventListener('orientationchange', refresh);
       addEventListener('load', () => { refresh(); gotoHash(); });
       addEventListener('hashchange', gotoHash);
       addEventListener('scroll', onScroll, { passive:true });
+      track.addEventListener('scroll', onTrackScroll, { passive: true });
     })();
   </script>
 </body>
