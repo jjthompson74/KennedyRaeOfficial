@@ -1,8 +1,9 @@
 :root{
   --nav-h: 56px;                 /* header height */
   --gutter: 5vw;                 /* side padding inside panels */
-  --panel-count: 5;              /* updated by JS */
+  --panel-count: 5;              /* JS updates this automatically */
   --progress-h: 3px;             /* set to 0 to hide progress bar */
+  --slice-w: 33.333%;            /* right-side image slice width for non-hero panels */
   color-scheme: light dark;
 }
 
@@ -12,7 +13,6 @@ body{
   font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
   line-height:1.6; background:#111; color:#fff;
   overflow-x:hidden; /* never allow page-level horizontal scroll */
-  padding-top: var(--nav-h); /* keep content below fixed header */
 }
 
 /* Visually hidden utility */
@@ -21,11 +21,11 @@ body{
 a{ color:inherit; text-decoration:none; }
 :where(a,button,[tabindex]):focus-visible{ outline:2px solid currentColor; outline-offset:3px; }
 
-/* Fixed header stays pinned at the very top */
+/* Fixed header overlays content */
 .site-header{
-  position:fixed; inset:0 0 auto 0; height:var(--nav-h); z-index:1000;
+  position:fixed; top:0; right:0; left:0; height:var(--nav-h); z-index:1000;
   display:grid; align-items:center; grid-template-rows: 1fr var(--progress-h);
-  background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+  background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
   border-bottom: 1px solid #222;
 }
 .nav{ display:flex; gap: clamp(12px,3vw,28px); padding:0 2vw; white-space:nowrap; overflow:auto hidden; scrollbar-width:none; }
@@ -39,7 +39,7 @@ a{ color:inherit; text-decoration:none; }
 
 /* === DESKTOP: FIXED STAGE MODEL === */
 .stage{
-  position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
+  position:fixed; left:0; top:0; width:100vw; height:100dvh; /* full bleed under header */
   background:#000; z-index: 10; overflow:hidden; contain:layout paint;
 }
 .track{
@@ -50,11 +50,31 @@ a{ color:inherit; text-decoration:none; }
   position:relative; flex:0 0 100vw; height:100%; overflow:hidden;
   display:grid; place-items:center; isolation:isolate; background:#222;
 }
-.panel[data-bg]::before{
-  content:""; position:absolute; inset:0; z-index:-1;
-  background:center/cover no-repeat var(--bg);
+
+/* Background system using CSS variables:
+   - Set per-panel: --bg (image), --bg-pos (position), --bg-size (size)
+   - Hero (#home) is full-bleed; others are right-side slice with width --slice-w
+*/
+.panel::before{
+  content:""; position:absolute; inset:0; z-index:-1;  /* default = full-bleed */
+  background: center / cover no-repeat var(--bg);
+  background-position: var(--bg-pos, 50% 50%);
+  background-size: var(--bg-size, cover);
 }
-.content{ width:min(1100px,90vw); padding:6vh var(--gutter); }
+.panel:not(#home)::before{
+  left: auto; right: 0; top: 0; bottom: 0;
+  width: var(--slice-w, 33.333%); /* right slice */
+}
+
+.content{
+  width:min(1100px,90vw);
+  /* Keep text away from the overlaid header and the right-side slice */
+  padding: 10vh var(--gutter);
+}
+.panel:not(#home) .content{
+  padding-right: calc(var(--gutter) + var(--slice-w, 33.333%));
+}
+
 h1,h2{ line-height:1.2; margin:0 0 .5em; }
 h1{ font-size: clamp(2rem, 4vw + 1rem, 4rem); }
 h2{ font-size: clamp(1.5rem, 3vw + .5rem, 3rem); }
@@ -68,16 +88,21 @@ p{ max-width:70ch; margin:0 0 1rem; }
   .stage{ position:static; top:auto; height:auto; }
   .track{
     flex-direction:column; width:100%;
-    height: calc(100dvh - var(--nav-h)); /* viewport minus fixed header */
+    height: 100dvh; /* full viewport; header overlays on top */
     overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
     scroll-snap-type: y mandatory;
+    scroll-padding-top: var(--nav-h); /* land below header when snapping */
     transform: none !important;
   }
   #spacer{ display:none; }
   .panel{
     flex: 0 0 auto;
-    height: calc(100dvh - var(--nav-h));
+    height: 100dvh;
     scroll-snap-align: start; scroll-snap-stop: always;
+  }
+  /* Keep text away from right slice on mobile too */
+  .panel:not(#home) .content{
+    padding-right: calc(var(--gutter) + var(--slice-w, 33.333%));
   }
 }
 
@@ -92,3 +117,39 @@ p{ max-width:70ch; margin:0 0 1rem; }
 
 /* Demo badge (remove later) */
 .badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
+
+/* ===============================
+   PER-PANEL BACKGROUNDS (edit me)
+   =============================== */
+
+/* Hero: full-bleed background */
+#home{
+  --bg: url('images/hero-1920.webp');     /* replace with your image */
+  background: #000;                       /* fallback color behind image */
+}
+
+/* Non-hero panels: right-side portrait slices
+   You control each panel's image/position/size independently.
+*/
+#section-1{
+  background:#0f172a;                     /* solid color, no image slice */
+  --bg: none;
+}
+#section-2{
+  background:#0a0a0a;                     /* base color behind slice */
+  --bg: url('images/portrait-1.webp');    /* replace with your image */
+  --bg-pos: 50% 50%;                      /* tweak per image */
+  --bg-size: cover;                        /* 'cover' or custom like 'auto 100%' */
+}
+#section-3{
+  background:#111827;
+  --bg: url('images/portrait-2.webp');
+  --bg-pos: 50% 20%;
+  --bg-size: cover;
+}
+#section-4{
+  background:#0b1324;
+  --bg: url('images/portrait-3.webp');
+  --bg-pos: 50% 50%;
+  --bg-size: cover;
+}
