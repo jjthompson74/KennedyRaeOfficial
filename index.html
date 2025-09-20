@@ -3,106 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>kennedy rae : actor, dancer, singer, artist</title>
-  <meta name="description" content="Starter layout: fixed header, fixed horizontal stage; vertical scroll drives horizontal movement; mobile scroll-snap; reduced-motion fallback.">
-  <style>
-    :root{
-      --nav-h: 56px;                 /* header height */
-      --gutter: 5vw;                 /* side padding inside panels */
-      --panel-count: 5;              /* updated by JS */
-      --progress-h: 3px;             /* set to 0 to hide progress bar */
-      color-scheme: light dark;
-    }
-
-    *{ box-sizing: border-box; }
-    html,body{ height:100%; margin:0; }
-    body{
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      line-height:1.6; background:#111; color:#fff;
-      overflow-x:hidden; /* never allow page-level horizontal scroll */
-      padding-top: var(--nav-h); /* keep content below fixed header */
-    }
-
-    /* Visually hidden utility */
-    .sr-only{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-
-    a{ color:inherit; text-decoration:none; }
-    :where(a,button,[tabindex]):focus-visible{ outline:2px solid currentColor; outline-offset:3px; }
-
-    /* Fixed header stays pinned at the very top */
-    .site-header{
-      position:fixed; inset:0 0 auto 0; height:var(--nav-h); z-index:1000;
-      display:grid; align-items:center; grid-template-rows: 1fr var(--progress-h);
-      background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
-      border-bottom: 1px solid #222;
-    }
-    .nav{ display:flex; gap: clamp(12px,3vw,28px); padding:0 2vw; white-space:nowrap; overflow:auto hidden; scrollbar-width:none; }
-    .nav::-webkit-scrollbar{ display:none; }
-    .nav a{ opacity:.8; }
-    .nav a[aria-current="page"], .nav a:hover{ opacity:1; }
-
-    /* Optional progress bar */
-    .progress{ height:var(--progress-h); background:rgba(255,255,255,.12); overflow:hidden; }
-    .progress__bar{ height:100%; width:0%; background: currentColor; opacity:.9; transform-origin:left center; }
-
-    /* === DESKTOP: FIXED STAGE MODEL === */
-    .stage{
-      position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
-      background:#000; z-index: 10; overflow:hidden; contain:layout paint;
-    }
-    .track{
-      display:flex; height:100%; width: calc(var(--panel-count) * 100vw);
-      transform: translate3d(0,0,0);
-    }
-
-    .panel{
-      position:relative; flex:0 0 100vw; height:100%; overflow:hidden;
-      display:grid; place-items:center; isolation:isolate; background:#222;
-    }
-    .panel[data-bg]::before{
-      content:""; position:absolute; inset:0; z-index:-1;
-      background:center/cover no-repeat var(--bg);
-    }
-    .content{ width:min(1100px,90vw); padding:6vh var(--gutter); }
-    h1,h2{ line-height:1.2; margin:0 0 .5em; }
-    h1{ font-size: clamp(2rem, 4vw + 1rem, 4rem); }
-    h2{ font-size: clamp(1.5rem, 3vw + .5rem, 3rem); }
-    p{ max-width:70ch; margin:0 0 1rem; }
-
-    /* The spacer is invisible content that creates the vertical scroll range. */
-    #spacer{ height:100vh; }
-
-    /* === MOBILE: vertical stack + full-height SCROLL-SNAP on the TRACK (reliable on iOS/Android) === */
-    @media (max-width: 768px){
-      .stage{ position:static; top:auto; height:auto; }
-      .track{
-        flex-direction:column; width:100%;
-        height: calc(100dvh - var(--nav-h)); /* viewport minus fixed header */
-        overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-        scroll-snap-type: y mandatory; /* make the track the scroller & snap container */
-        transform: none !important;
-      }
-      #spacer{ display:none; }
-
-      .panel{
-        flex: 0 0 auto; /* stack naturally */
-        height: calc(100dvh - var(--nav-h));
-        scroll-snap-align: start; scroll-snap-stop: always;
-      }
-    }
-
-    /* === REDUCED-MOTION: stack panels without snapping/animation === */
-    @media (prefers-reduced-motion: reduce){
-      .stage{ position:static; top:auto; height:auto; }
-      .track{ flex-direction:column; width:100%; height:auto; overflow:visible; transform:none !important; }
-      #spacer{ display:none; }
-      .panel{ height: min(100vh, 900px); }
-      html, body{ scroll-snap-type: none; }
-    }
-
-    /* Demo badges (remove later) */
-    .badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
-  </style>
+  <title>Horizontal Scrollytelling — Overlay Header + Right-Slice Panels</title>
+  <meta name="description" content="Fixed header overlay, fixed horizontal stage; vertical scroll drives horizontal movement; mobile scroll-snap; right-side image slices.">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <a href="#main" class="sr-only">Skip to content</a>
@@ -122,40 +25,39 @@
     <!-- Fixed stage (never moves vertically on desktop) -->
     <div class="stage" id="stage">
       <div class="track" id="track">
-        <!-- Panel 0 -->
-        <section class="panel" id="home" data-bg style="--bg: url('https://jjthompson74.github.io/KennedyRaeOfficial/KTWebsiteMainBG.jpg');">
+        <section class="panel" id="home">
           <span class="badge">Panel 0</span>
           <div class="content">
             <h1>Welcome</h1>
-            <p>Hero text here. Replace image URL via the inline <code>--bg</code> style.</p>
+            <p>Hero text here.</p>
           </div>
         </section>
-        <!-- Panel 1 -->
-        <section class="panel" id="section-1" style="background:#0f172a;">
+
+        <section class="panel" id="section-1">
           <span class="badge">Panel 1</span>
           <div class="content">
             <h2>Section 1</h2>
             <p>Drop your HTML here.</p>
           </div>
         </section>
-        <!-- Panel 2 -->
-        <section class="panel" id="section-2" data-bg style="--bg: url('https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?w=2000&q=80&auto=format&fit=crop');">
+
+        <section class="panel" id="section-2">
           <span class="badge">Panel 2</span>
           <div class="content">
             <h2>Section 2</h2>
-            <p>Swap to a different photo or color.</p>
+            <p>Portrait slice on the right; content on the left.</p>
           </div>
         </section>
-        <!-- Panel 3 -->
-        <section class="panel" id="section-3" style="background:#111827;">
+
+        <section class="panel" id="section-3">
           <span class="badge">Panel 3</span>
           <div class="content">
             <h2>Section 3</h2>
             <p>Another content area.</p>
           </div>
         </section>
-        <!-- Panel 4 -->
-        <section class="panel" id="section-4" data-bg style="--bg: url('https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=2000&q=80&auto=format&fit=crop');">
+
+        <section class="panel" id="section-4">
           <span class="badge">Panel 4</span>
           <div class="content">
             <h2>Section 4</h2>
@@ -169,153 +71,6 @@
     <div id="spacer" aria-hidden="true"></div>
   </main>
 
-  <noscript>
-    <p style="padding:1rem">This layout uses a small script to translate panels horizontally while you scroll. With JavaScript disabled (or on small screens), panels appear stacked vertically and the header stays fixed.</p>
-  </noscript>
-
-  <script>
-    (function(){
-      const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const isNarrow = () => matchMedia('(max-width: 768px)').matches;
-
-      const root = document.documentElement;
-      const stage = document.getElementById('stage');
-      const track = document.getElementById('track');
-      const panels = Array.from(track.querySelectorAll('.panel'));
-      const spacer = document.getElementById('spacer');
-      const nav = document.querySelector('.nav');
-      const links = Array.from(nav.querySelectorAll('a[data-panel]'));
-      const idByIndex = panels.map(p => '#' + p.id);
-      const progressEl = document.getElementById('progressBar');
-
-      root.style.setProperty('--panel-count', panels.length);
-
-      let maxX = 0;           // total horizontal distance in px
-      let totalScroll = 0;    // vertical scroll range mapping to maxX (desktop)
-      let currentIndex = 0;
-
-      function measure(){
-        const vw = window.innerWidth;
-        maxX = Math.max(0, (panels.length * vw) - vw);
-        totalScroll = maxX; // 1:1 mapping for desktop
-        spacer.style.height = (totalScroll + window.innerHeight) + 'px';
-      }
-
-      function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
-
-      // --- DESKTOP scroll mapping (window scroll → horizontal translate) ---
-      let ticking = false;
-      function onScroll(){
-        if (isNarrow() || prefersReduced) return; // mobile/reduced-motion uses native stacking
-        if (ticking) return; ticking = true;
-        requestAnimationFrame(() => {
-          const y = window.scrollY || window.pageYOffset;
-          const progress = totalScroll ? clamp(y / totalScroll, 0, 1) : 0;
-          const x = -progress * maxX;
-          track.style.transform = `translate3d(${x}px,0,0)`;
-          if (progressEl) progressEl.style.width = (progress * 100) + '%';
-          const idx = Math.round(progress * (panels.length - 1));
-          if (idx !== currentIndex){ currentIndex = idx; updateNav(idx); setHash(idByIndex[idx], false); }
-          ticking = false;
-        });
-      }
-
-      // --- MOBILE snap progress (track scroll → progress/nav) ---
-      function onTrackScroll(){
-        if (!isNarrow() || prefersReduced) return;
-        const max = track.scrollHeight - track.clientHeight;
-        const st = track.scrollTop;
-        const progress = max ? clamp(st / max, 0, 1) : 0;
-        if (progressEl) progressEl.style.width = (progress * 100) + '%';
-        const panelH = track.clientHeight || 1;
-        const idx = clamp(Math.round(st / panelH), 0, panels.length - 1);
-        if (idx !== currentIndex){ currentIndex = idx; updateNav(idx); setHash(idByIndex[idx], false); }
-      }
-
-      function updateNav(activeIndex){
-        links.forEach(a => a.removeAttribute('aria-current'));
-        const active = links.find(a => Number(a.dataset.panel) === activeIndex);
-        if (active) active.setAttribute('aria-current','page');
-      }
-
-      function setHash(id, push){
-        if (!id || id === window.location.hash) return;
-        try{ push ? history.pushState(null,'',id) : history.replaceState(null,'',id); }
-        catch(e){ window.location.hash = id; }
-      }
-
-      function scrollToPanel(index){
-        if (isNarrow() && !prefersReduced){
-          // mobile: scroll the track
-          const y = (track.clientHeight * index);
-          track.scrollTo({ top: y, behavior: 'smooth' });
-          return;
-        }
-        // desktop: map to window scroll
-        const targetProgress = (panels.length > 1) ? index / (panels.length - 1) : 0;
-        const y = targetProgress * totalScroll;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-
-      function gotoHash(){
-        const hash = decodeURIComponent(window.location.hash||'');
-        if (!hash || hash === '#') return;
-        const id = hash.replace('#','');
-        const index = panels.findIndex(p => p.id === id);
-        if (index < 0) return;
-        scrollToPanel(index);
-      }
-
-      function bindNav(){
-        nav.addEventListener('click', (e) => {
-          const a = e.target.closest('a[data-panel]');
-          if (!a) return;
-          const index = Number(a.dataset.panel);
-          if (!Number.isFinite(index)) return;
-          e.preventDefault();
-          const id = a.getAttribute('href');
-          setHash(id, true); // create history entry
-          scrollToPanel(index);
-        });
-
-        // keyboard helpers
-        addEventListener('keydown', (e) => {
-          if (['ArrowRight','PageDown'].includes(e.key)) { e.preventDefault(); scrollToPanel(clamp(currentIndex+1,0,panels.length-1)); }
-          if (['ArrowLeft','PageUp'].includes(e.key))   { e.preventDefault(); scrollToPanel(clamp(currentIndex-1,0,panels.length-1)); }
-          if (e.key === 'Home') { e.preventDefault(); scrollToPanel(0); }
-          if (e.key === 'End')  { e.preventDefault(); scrollToPanel(panels.length-1); }
-        });
-      }
-
-      function refresh(){
-        if (prefersReduced){
-          track.style.transform = 'none';
-          spacer.style.display = 'none';
-          if (progressEl) progressEl.style.width = '0%';
-          return;
-        }
-        if (isNarrow()){
-          // mobile: stacked + snap; no desktop measurements needed
-          track.style.transform = 'none';
-          spacer.style.display = 'none';
-          if (progressEl) progressEl.style.width = '0%';
-        } else {
-          // desktop
-          spacer.style.display = '';
-          measure();
-          onScroll();
-        }
-      }
-
-      bindNav();
-      // listeners
-      addEventListener('resize', refresh);
-      addEventListener('orientationchange', refresh);
-      addEventListener('load', () => { refresh(); gotoHash(); });
-      addEventListener('hashchange', gotoHash);
-      addEventListener('scroll', onScroll, { passive:true });
-      track.addEventListener('scroll', onTrackScroll, { passive: true });
-    })();
-  </script>
+  <script defer src="js/app.js"></script>
 </body>
 </html>
