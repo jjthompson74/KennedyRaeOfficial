@@ -1,0 +1,94 @@
+:root{
+  --nav-h: 56px;                 /* header height */
+  --gutter: 5vw;                 /* side padding inside panels */
+  --panel-count: 5;              /* updated by JS */
+  --progress-h: 3px;             /* set to 0 to hide progress bar */
+  color-scheme: light dark;
+}
+
+*{ box-sizing: border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.6; background:#111; color:#fff;
+  overflow-x:hidden; /* never allow page-level horizontal scroll */
+  padding-top: var(--nav-h); /* keep content below fixed header */
+}
+
+/* Visually hidden utility */
+.sr-only{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+a{ color:inherit; text-decoration:none; }
+:where(a,button,[tabindex]):focus-visible{ outline:2px solid currentColor; outline-offset:3px; }
+
+/* Fixed header stays pinned at the very top */
+.site-header{
+  position:fixed; inset:0 0 auto 0; height:var(--nav-h); z-index:1000;
+  display:grid; align-items:center; grid-template-rows: 1fr var(--progress-h);
+  background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+  border-bottom: 1px solid #222;
+}
+.nav{ display:flex; gap: clamp(12px,3vw,28px); padding:0 2vw; white-space:nowrap; overflow:auto hidden; scrollbar-width:none; }
+.nav::-webkit-scrollbar{ display:none; }
+.nav a{ opacity:.8; }
+.nav a[aria-current="page"], .nav a:hover{ opacity:1; }
+
+/* Optional progress bar */
+.progress{ height:var(--progress-h); background:rgba(255,255,255,.12); overflow:hidden; }
+.progress__bar{ height:100%; width:0%; background: currentColor; opacity:.9; transform-origin:left center; }
+
+/* === DESKTOP: FIXED STAGE MODEL === */
+.stage{
+  position:fixed; left:0; top:var(--nav-h); width:100vw; height:calc(100dvh - var(--nav-h));
+  background:#000; z-index: 10; overflow:hidden; contain:layout paint;
+}
+.track{
+  display:flex; height:100%; width: calc(var(--panel-count) * 100vw);
+  transform: translate3d(0,0,0);
+}
+.panel{
+  position:relative; flex:0 0 100vw; height:100%; overflow:hidden;
+  display:grid; place-items:center; isolation:isolate; background:#222;
+}
+.panel[data-bg]::before{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:center/cover no-repeat var(--bg);
+}
+.content{ width:min(1100px,90vw); padding:6vh var(--gutter); }
+h1,h2{ line-height:1.2; margin:0 0 .5em; }
+h1{ font-size: clamp(2rem, 4vw + 1rem, 4rem); }
+h2{ font-size: clamp(1.5rem, 3vw + .5rem, 3rem); }
+p{ max-width:70ch; margin:0 0 1rem; }
+
+/* Spacer creates the vertical scroll range on desktop */
+#spacer{ height:100vh; }
+
+/* === MOBILE: vertical stack + full-height SCROLL-SNAP on the TRACK === */
+@media (max-width: 768px){
+  .stage{ position:static; top:auto; height:auto; }
+  .track{
+    flex-direction:column; width:100%;
+    height: calc(100dvh - var(--nav-h)); /* viewport minus fixed header */
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: y mandatory;
+    transform: none !important;
+  }
+  #spacer{ display:none; }
+  .panel{
+    flex: 0 0 auto;
+    height: calc(100dvh - var(--nav-h));
+    scroll-snap-align: start; scroll-snap-stop: always;
+  }
+}
+
+/* === REDUCED-MOTION: stack panels without snapping/animation === */
+@media (prefers-reduced-motion: reduce){
+  .stage{ position:static; top:auto; height:auto; }
+  .track{ flex-direction:column; width:100%; height:auto; overflow:visible; transform:none !important; }
+  #spacer{ display:none; }
+  .panel{ height: min(100vh, 900px); }
+  html, body{ scroll-snap-type: none; }
+}
+
+/* Demo badge (remove later) */
+.badge{ position:absolute; top:12px; left:12px; opacity:.7; font-size:.875rem; }
