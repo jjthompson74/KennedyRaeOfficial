@@ -124,7 +124,7 @@ p{ max-width:70ch; margin:0 0 1rem; }
 
 /* Hero: full-bleed background */
 #home{
-  --bg: url('images/KTWebsiteMainBG.jpg');     /* replace with your image */
+  --bg: url('../images/KTWebsiteMainBG.jpg');     /* replace with your image */
   background: #000;                       /* fallback color behind image */
 }
 
@@ -133,25 +133,25 @@ p{ max-width:70ch; margin:0 0 1rem; }
 */
 #section-1{
   background:#0a0a0a;                     /* base color behind slice */
-  --bg: url('images/KTPennStationBridge.webp');    /* replace with your image */
+  --bg: url('../images/KTPennStationBridge.webp');    /* replace with your image */
   --bg-pos: 50% 50%;                      /* tweak per image */
   --bg-size: cover;                        /* 'cover' or custom like 'auto 100%' */
 }
 #section-2{
   background:#0a0a0a;                    
-  --bg: url('images/KTLincolnCenterBalletSkirt.webp');   
+  --bg: url('../images/KTLincolnCenterBalletSkirt.webp');   
   --bg-pos: 50% 50%;                     
   --bg-size: cover;                      
 }
 #section-3{
   background:#111827;
-  --bg: url('images/KTPennStationElevator.webp');
+  --bg: url('../images/KTPennStationElevator.webp');
   --bg-pos: 50% 20%;
   --bg-size: cover;
 }
 #section-4{
   background:#0b1324;
-  --bg: url('images/KTSmilingNYCStreet.webp');
+  --bg: url('../images/KTSmilingNYCStreet.webp');
   --bg-pos: 50% 50%;
   --bg-size: cover;
 }
