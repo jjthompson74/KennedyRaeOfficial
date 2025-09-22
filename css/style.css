@@ -146,7 +146,7 @@ p{ max-width:70ch; margin:0 0 1rem; }
 #section-3{
   background:#111827;
   --bg: url('../images/KTPennStationElevator.webp');
-  --bg-pos: 50% 20%;
+  --bg-pos: 50% 50%;
   --bg-size: cover;
 }
 #section-4{
