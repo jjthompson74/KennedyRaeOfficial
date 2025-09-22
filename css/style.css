@@ -3,7 +3,7 @@
   --gutter: 5vw;                 /* side padding inside panels */
   --panel-count: 5;              /* JS updates this automatically */
   --progress-h: 3px;             /* set to 0 to hide progress bar */
-  --slice-w: 33.333%;            /* right-side image slice width for non-hero panels */
+  --slice-w: 45%;            /* right-side image slice width for non-hero panels */
   color-scheme: light dark;
 }
 
